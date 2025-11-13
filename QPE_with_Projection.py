@@ -15,7 +15,7 @@ _, init_state = driver()
 
 # First choose n > 6, e.g., 7. Phases whose MSB is 1 are negligible.
 # 0110000000, 0101000000, 0111000000, 0100000000 are dominant.
-In [1]: qpe(10, PauliEvolutionGate(hamiltonian, time=2 * np.pi / 2**7), initial_state=final_state)
+In [1]: qpe(10, PauliEvolutionGate(hamiltonian, time=2 * np.pi / 2**7), initial_state=init_state)
 Out[1]:
 {'1110000000': 4,
  '1010000000': 18,
@@ -36,7 +36,7 @@ Out[1]:
 
 # Now n = 6. All the states are equally probable, so 11100000 is likely to be the ground state, w/
 # energy ~ -56.
-In [4]: qpe(8, PauliEvolutionGate(hamiltonian, time=2 * np.pi / 2**6), initial_state=final_state)
+In [4]: qpe(8, PauliEvolutionGate(hamiltonian, time=2 * np.pi / 2**6), initial_state=init_state)
 Out[4]:
 {'00100000': 77,
  '10000000': 134,
