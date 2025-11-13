@@ -1,8 +1,8 @@
-import math
-
+import numpy as np
 from qiskit import QuantumCircuit, transpile
 from qiskit.circuit import Instruction
 from qiskit.circuit.library import QFT, PhaseGate, RZGate, TGate, XGate
+from qiskit.quantum_info import Statevector
 from qiskit_aer import AerSimulator
 
 
@@ -10,6 +10,7 @@ def qpe(
     precision: int,
     unitary: QuantumCircuit | Instruction,
     initializer: QuantumCircuit | Instruction | None = None,
+    initial_state: Statevector | None = None,
 ) -> dict:
     num_state_qubits = unitary.num_qubits
     state_qubits = list(range(precision, precision + num_state_qubits))
@@ -18,6 +19,8 @@ def qpe(
     qpe = QuantumCircuit(precision + num_state_qubits, precision)
     if initializer:
         qpe.compose(initializer, state_qubits, inplace=True)
+    elif initial_state:
+        qpe.initialize(initial_state, state_qubits)
 
     qpe.h(ancilla_qubits)
 
@@ -41,8 +44,8 @@ def qpe(
     return aer_sim.run(transpile(qpe, aer_sim), shots=1024).result().get_counts()
 
 
-qpe(3, PhaseGate(2 * math.pi * (1 / 4 + 1 / 8)), XGate())
+# qpe(3, PhaseGate(2 * np.pi * (1 / 4 + 1 / 8)), XGate())
 # {'011': 1024}
 
-qpe(3, TGate(), XGate())
+# qpe(3, TGate(), XGate())
 # {'001': 1024}

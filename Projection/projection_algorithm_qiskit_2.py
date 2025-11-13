@@ -24,43 +24,51 @@ num_qubits = 4 * 3
 # 4x3 Heisenberg lattice
 hamiltonian = SparsePauliOp(
     [
-        'XIIXIIIIIIII', 'YIIYIIIIIIII', 'ZIIZIIIIIIII',
-        'XXIIIIIIIIII', 'YYIIIIIIIIII', 'ZZIIIIIIIIII',
-        'XIIIIIIIXIII', 'YIIIIIIIYIII', 'ZIIIIIIIZIII',
-        'XIIIXIIIIIII', 'YIIIYIIIIIII', 'ZIIIZIIIIIII',
-        'IIIIXIIXIIII', 'IIIIYIIYIIII', 'IIIIZIIZIIII',
-        'IIIIXXIIIIII', 'IIIIYYIIIIII', 'IIIIZZIIIIII',
-        'IIIIXIIIXIII', 'IIIIYIIIYIII', 'IIIIZIIIZIII',
-        'IIIIIIIIXIIX', 'IIIIIIIIYIIY', 'IIIIIIIIZIIZ',
-        'IIIIIIIIXXII', 'IIIIIIIIYYII', 'IIIIIIIIZZII',
-        'IXXIIIIIIIII', 'IYYIIIIIIIII', 'IZZIIIIIIIII',
-        'IXIIIIIIIXII', 'IYIIIIIIIYII', 'IZIIIIIIIZII',
-        'IXIIIXIIIIII', 'IYIIIYIIIIII', 'IZIIIZIIIIII',
-        'IIIIIXXIIIII', 'IIIIIYYIIIII', 'IIIIIZZIIIII',
-        'IIIIIXIIIXII', 'IIIIIYIIIYII', 'IIIIIZIIIZII',
-        'IIIIIIIIIXXI', 'IIIIIIIIIYYI', 'IIIIIIIIIZZI',
-        'IIXXIIIIIIII', 'IIYYIIIIIIII', 'IIZZIIIIIIII',
-        'IIXIIIIIIIXI', 'IIYIIIIIIIYI', 'IIZIIIIIIIZI',
-        'IIXIIIXIIIII', 'IIYIIIYIIIII', 'IIZIIIZIIIII',
-        'IIIIIIXXIIII', 'IIIIIIYYIIII', 'IIIIIIZZIIII',
-        'IIIIIIXIIIXI', 'IIIIIIYIIIYI', 'IIIIIIZIIIZI',
-        'IIIIIIIIIIXX', 'IIIIIIIIIIYY', 'IIIIIIIIIIZZ',
-        'IIIXIIIIIIIX', 'IIIYIIIIIIIY', 'IIIZIIIIIIIZ',
-        'IIIXIIIXIIII', 'IIIYIIIYIIII', 'IIIZIIIZIIII',
-        'IIIIIIIXIIIX', 'IIIIIIIYIIIY', 'IIIIIIIZIIIZ',
+        'XIIXIIIIIIII', 'YIIYIIIIIIII', 'ZIIZIIIIIIII', 'XXIIIIIIIIII',
+        'YYIIIIIIIIII', 'ZZIIIIIIIIII', 'XIIIIIIIXIII', 'YIIIIIIIYIII',
+        'ZIIIIIIIZIII', 'XIIIXIIIIIII', 'YIIIYIIIIIII', 'ZIIIZIIIIIII',
+        'IIIIXIIXIIII', 'IIIIYIIYIIII', 'IIIIZIIZIIII', 'IIIIXXIIIIII',
+        'IIIIYYIIIIII', 'IIIIZZIIIIII', 'IIIIXIIIXIII', 'IIIIYIIIYIII',
+        'IIIIZIIIZIII', 'IIIIIIIIXIIX', 'IIIIIIIIYIIY', 'IIIIIIIIZIIZ',
+        'IIIIIIIIXXII', 'IIIIIIIIYYII', 'IIIIIIIIZZII', 'IXXIIIIIIIII',
+        'IYYIIIIIIIII', 'IZZIIIIIIIII', 'IXIIIIIIIXII', 'IYIIIIIIIYII',
+        'IZIIIIIIIZII', 'IXIIIXIIIIII', 'IYIIIYIIIIII', 'IZIIIZIIIIII',
+        'IIIIIXXIIIII', 'IIIIIYYIIIII', 'IIIIIZZIIIII', 'IIIIIXIIIXII',
+        'IIIIIYIIIYII', 'IIIIIZIIIZII', 'IIIIIIIIIXXI', 'IIIIIIIIIYYI',
+        'IIIIIIIIIZZI', 'IIXXIIIIIIII', 'IIYYIIIIIIII', 'IIZZIIIIIIII',
+        'IIXIIIIIIIXI', 'IIYIIIIIIIYI', 'IIZIIIIIIIZI', 'IIXIIIXIIIII',
+        'IIYIIIYIIIII', 'IIZIIIZIIIII', 'IIIIIIXXIIII', 'IIIIIIYYIIII',
+        'IIIIIIZZIIII', 'IIIIIIXIIIXI', 'IIIIIIYIIIYI', 'IIIIIIZIIIZI',
+        'IIIIIIIIIIXX', 'IIIIIIIIIIYY', 'IIIIIIIIIIZZ', 'IIIXIIIIIIIX',
+        'IIIYIIIIIIIY', 'IIIZIIIIIIIZ', 'IIIXIIIXIIII', 'IIIYIIIYIIII',
+        'IIIZIIIZIIII', 'IIIIIIIXIIIX', 'IIIIIIIYIIIY', 'IIIIIIIZIIIZ',
     ],
-    coeffs=[
-        2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0,
-        2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0,
-        2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0,
-        2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0,
-        2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0,
-        2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0,
-    ],
+    coeffs=np.array(
+        [
+            2.0, 2.0, 2.0, 2.0,
+            2.0, 2.0, 2.0, 2.0,
+            2.0, 2.0, 2.0, 2.0,
+            2.0, 2.0, 2.0, 2.0,
+            2.0, 2.0, 2.0, 2.0,
+            2.0, 2.0, 2.0, 2.0,
+            2.0, 2.0, 2.0, 2.0,
+            2.0, 2.0, 2.0, 2.0,
+            2.0, 2.0, 2.0, 2.0,
+            2.0, 2.0, 2.0, 2.0,
+            2.0, 2.0, 2.0, 2.0,
+            2.0, 2.0, 2.0, 2.0,
+            2.0, 2.0, 2.0, 2.0,
+            2.0, 2.0, 2.0, 2.0,
+            2.0, 2.0, 2.0, 2.0,
+            2.0, 2.0, 2.0, 2.0,
+            2.0, 2.0, 2.0, 2.0,
+            2.0, 2.0, 2.0, 2.0,
+        ]
+    ),
 )
 H_matrix = hamiltonian.to_matrix()
 
-times =  [np.pi/2, np.pi/4, np.pi/8, np.pi/16]
+times =  [np.pi / 2, np.pi / 4, np.pi / 8, np.pi / 16]
 phases = [0,0,0,0]
 
 
@@ -165,18 +173,18 @@ def apply_Jx_and_Jz_projection(normalized_vector):
 def driver():
     v_0, e_p, e_0 = apply_first_Jz_projection()
     v_c, e_c = apply_Jx_and_Jz_projection(v_0)
-    hist = [e_0, e_p, e_c]
+    exp_vals = [e_0, e_p, e_c]
     while (diff := abs((e_c - e_p) / e_p)) > 1e-6:
         print(f"Energy % difference: {diff}")
         e_p = e_c
         v_c, e_c = apply_Jx_and_Jz_projection(v_c)
-        hist.append(e_c)
+        exp_vals.append(e_c)
 
-    return hist
+    return exp_vals, v_c
 
 
-def plot(hist):
-    n = len(hist)
+def plot(exp_vals):
+    n = len(exp_vals)
     x = list(range(n))
 
     # Compute actual ground state energy.
@@ -185,7 +193,7 @@ def plot(hist):
     # Precomputed, as it takes time.
     actual = -58.94574155307309
 
-    plt.ylim(actual - 2, hist[0] + 2)
+    plt.ylim(actual - 2, exp_vals[0] + 2)
     plt.xticks(x)
     plt.legend(loc="upper right")
     ax = plt.gca()
@@ -193,7 +201,11 @@ def plot(hist):
     ax.tick_params(direction="in", top=True, right=True)
     plt.xlabel("Iteration")
     plt.ylabel("Energy")
-    plt.plot(x, hist, "bo", label="J$^2$ Projection")
+    plt.plot(x, exp_vals, "bo", label="J$^2$ Projection")
     plt.plot([0, n - 1], [actual, actual], "k--", label="Ground state")
 
     plt.show()
+
+
+# exp_vals, final_state = driver()
+# plot(exp_vals)
