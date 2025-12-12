@@ -5,7 +5,7 @@ Revised on Mon Oct 27 2025
 @author: mihalikova
 @contributer: minjoon-park
 
-qiskit==2.2.2
+qiskit==2.2.3
 qiskit-aer==0.17.2
 qiskit_ibm_runtime==0.43.1
 """
@@ -17,7 +17,6 @@ from qiskit import transpile
 from qiskit.circuit import QuantumCircuit
 from qiskit.quantum_info import SparsePauliOp, Statevector
 from qiskit_aer import StatevectorSimulator
-from scipy.linalg import eigh
 
 num_qubits = 4 * 3
 
@@ -69,7 +68,7 @@ hamiltonian = SparsePauliOp(
 H_matrix = hamiltonian.to_matrix()
 
 times =  [np.pi / 2, np.pi / 4, np.pi / 8, np.pi / 16]
-phases = [0,0,0,0]
+phases = [0, 0, 0, 0]
 
 
 def initialize_circuit(state1: str, state2: str):
@@ -128,7 +127,13 @@ def apply_Jz_projection(circuit):
     qc = projection_circuit(circuit, times, phases, measure=False)
 
     simulator = StatevectorSimulator()
-    statevector = simulator.run(transpile(qc, simulator)).result().get_statevector().to_dict()
+    statevector = (
+        simulator
+        .run(transpile(qc, simulator), shots=1024)
+        .result()
+        .get_statevector()
+        .to_dict()
+    )
     np.set_printoptions(threshold=5)
     data = np.zeros(2 ** num_qubits, dtype=complex)
     for k, v in statevector.items():
@@ -151,7 +156,7 @@ def apply_first_Jz_projection():
     neal_state = ["101001011010", "010110100101"]
     initial_circuit = initialize_circuit(*neal_state)
     # print(initial_circuit.decompose())
-    initial_state =  np.array(Statevector.from_label('0' * 12).evolve(initial_circuit))
+    initial_state = np.array(Statevector.from_label('0' * 12).evolve(initial_circuit))
     return (
         *apply_Jz_projection(initial_circuit),
         # Expectation value with initial state
