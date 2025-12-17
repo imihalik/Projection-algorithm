@@ -1,0 +1,76 @@
+import numpy as np
+from qiskit import QuantumCircuit
+from qiskit.circuit.library import PhaseGate
+from qiskit_aer import AerSimulator
+
+
+def iqpe(phase, num_bits=7, shots=1024):
+    """
+    Iterative Quantum Phase Estimation
+
+    Parameters
+    ----------
+    phase : float
+        Phase φ in [0,1)
+    num_bits : int
+        Number of bits of precision
+    shots : int
+        Shots per iteration
+
+    Returns
+    -------
+    phi_est : float
+        Estimated phase
+    bits : list
+        Measured bits [b1, b2, ..., bt]
+    """
+
+    backend = AerSimulator()
+    bits = []
+
+    for k in range(num_bits):
+        qc = QuantumCircuit(2, 1)
+
+        # Prepare eigenstate |1>
+        qc.x(1)
+
+        # Control qubit
+        qc.h(0)
+
+        # Apply controlled-U^{2^{t-k-1}}
+        power = 2 ** (num_bits - k - 1)
+        angle = 2 * np.pi * phase * power
+        qc.append(PhaseGate(angle).control(1), [0, 1])
+
+        # Feedback phase correction
+        if bits:
+            feedback = sum(bits[j] / (2 ** (j + 1)) for j in range(len(bits)))
+            qc.p(-2 * np.pi * feedback * power, 0)
+
+        # Measure current bit
+        qc.h(0)
+        qc.measure(0, 0)
+
+        counts = backend.run(qc, shots=shots).result().get_counts()
+        bit = int(max(counts, key=counts.get))
+        bits.append(bit)
+
+    # Binary fraction to decimal
+    phi_est = sum(b / (2 ** (i + 1)) for i, b in enumerate(bits))
+    return phi_est, bits
+
+
+# ======================================================
+# Run IQPE
+# ======================================================
+if __name__ == "__main__":
+
+    phi = float(input("Enter phase (0 ≤ φ < 1): "))
+
+    estimate, bits = iqpe(phi, num_bits=7, shots=1024)
+
+    print("\nIQPE RESULTS")
+    print("-------------")
+    print("Measured bits: ", bits)
+    print(f"Estimated phase: {estimate:.8f}")
+    print(f"Original phase:  {phi:.8f}")
