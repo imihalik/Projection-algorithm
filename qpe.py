@@ -16,32 +16,32 @@ def qpe(
     state_qubits = list(range(precision, precision + num_state_qubits))
     ancilla_qubits = list(range(precision))
 
-    qpe = QuantumCircuit(precision + num_state_qubits, precision)
+    qpe_circuit = QuantumCircuit(precision + num_state_qubits, precision)
     if initializer:
-        qpe.compose(initializer, state_qubits, inplace=True)
+        qpe_circuit.compose(initializer, state_qubits, inplace=True, front=True)
     elif initial_state:
-        qpe.initialize(initial_state, state_qubits)
+        qpe_circuit.initialize(initial_state, state_qubits)
 
-    qpe.h(ancilla_qubits)
+    qpe_circuit.h(ancilla_qubits)
 
     for ancilla_qubit in ancilla_qubits:
-        qpe.compose(
+        qpe_circuit.compose(
             unitary.control().power(2**ancilla_qubit),
             [ancilla_qubit] + state_qubits,
             inplace=True,
         )
 
-    qpe.barrier()
+    qpe_circuit.barrier()
 
-    qpe.compose(QFT(precision, inverse=True), ancilla_qubits, inplace=True)
+    qpe_circuit.compose(QFT(precision, inverse=True), ancilla_qubits, inplace=True)
 
-    qpe.barrier()
+    qpe_circuit.barrier()
 
     for digit in ancilla_qubits:
-        qpe.measure(digit, digit)
+        qpe_circuit.measure(digit, digit)
 
     aer_sim = AerSimulator()
-    return aer_sim.run(transpile(qpe, aer_sim), shots=1024).result().get_counts()
+    return aer_sim.run(transpile(qpe_circuit, aer_sim), shots=2048).result().get_counts()
 
 
 # qpe(3, PhaseGate(2 * np.pi * (1 / 4 + 1 / 8)), XGate())

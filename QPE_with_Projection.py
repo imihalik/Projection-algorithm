@@ -5,6 +5,7 @@ from qiskit.circuit.library import PauliEvolutionGate, PhaseGate, XGate
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.synthesis import SuzukiTrotter
 from qiskit_aer import StatevectorSimulator
+from scipy.linalg import eigh
 
 from qpe import qpe
 
@@ -73,6 +74,103 @@ qpe(5, U, initial_state=list((v[0] + v[1]) / np.sqrt(2)))
 
 
 ####################################################################################################
+
+# Couldn't find any bugs on the `qpe` function.
+# - consistently works for some well known Hamiltonians.
+# - compared with the qiskit implementation. Found its bug, instead.
+
+# It's not the initial state prepared by projection algorithm that misbehaves. The `qpe` shows
+# truncation even when fed the ground state of the given Hamiltonian. See below for experiments on
+# various Hamiltonians. Looks like truncation happens to seemingly random Hamiltonians.
+
+# Works for some
+
+# In the above, we saw `SparsePauliOp(["ZI", "IZ", "ZZ"], coeffs=[0.33, 3.24, 1.17])` worked well.
+
+H2 = SparsePauliOp.from_list([("ZZ", 1.0), ("XX", 0.5)])
+eigenvalues, eigenvectors = eigh(H2)
+eigenvalues = -1.5, -0.5, 0.5, 1.5
+qpe(6, PauliEvolutionGate(H2, time=2 * np.pi / 2**2), initial_state=list(eigenvectors[:,0]))
+{'011000': 2048}
+
+H3 = SparsePauliOp(["III", "ZZI", "IZZ"], coeffs=[-2, 0.5, 0.5])
+eigenvalues, eigenvectors = eigh(H3)
+eigenvalues = -3, ...
+qpe(6, PauliEvolutionGate(H3, time=2 * np.pi / 2**2), initial_state=list(eigenvectors[:,0]))
+{'110000': 2048}
+
+H4 = SparsePauliOp(["IIII", "ZZII", "IZZI", "IIZZ"], coeffs=[-2, 0.5, 0.5, 0.5])
+eigenvalues, eigenvectors = eigh(H4)
+eigenvalues = -3.5, ...
+qpe(6, PauliEvolutionGate(H4, time=2 * np.pi / 2**2), initial_state=list(eigenvectors[:,0]))
+{'111000': 2048}
+
+H6 = SparsePauliOp(["IIIIII", "ZZZIII", "IZZZII", "IIZZZI", "IIIZZZ"], coeffs=[-2.2, 0.33, 0.7, 0.52, 0.82])
+eigenvalues, eigenvectors = eigh(H6)
+eigenvalues = -4.57, ...
+qpe(7, PauliEvolutionGate(H6, time=2 * np.pi / 2**3), initial_state=list(eigenvectors[:,0]))
+{'1001001': 1946, ...} -> 2**3 * (1 - (1 / 2**2 + 1 / 2**4 + 1 / 2**7)) = -4.5625
+
+
+# Truncation / Bad estimation
+
+def get_tfim_hamiltonian(num_qubits, J=1.0, h=0.5):
+    # (Pauli string, qubit indices, coefficient)
+    interactions = [("ZZ", [i, i+1], -J) for i in range(num_qubits - 1)]
+    fields = [("X", [i], -h) for i in range(num_qubits)]
+
+    # Combine into a single list and build the operator
+    return SparsePauliOp.from_sparse_list(interactions + fields, num_qubits=num_qubits)
+
+
+h2 = get_tfim_hamiltonian(2)
+eigenvalues, eigenvectors = eigh(h2)
+eigenvalues = -1.41421356, ...
+qpe(6, PauliEvolutionGate(h2, time=2 * np.pi / 2**2), initial_state=list(eigenvectors[:,0]))
+{'100000': 1025, '000000': 1023}
+
+
+h3 = get_tfim_hamiltonian(3)
+eigenvalues, eigenvectors = eigh(h3)
+eigenvalues = -2.40321193, ...
+qpe(6, PauliEvolutionGate(h3, time=2 * np.pi / 2**2), initial_state=list(eigenvectors[:,0]))
+{'011000': 1292, '111000': 756}
+
+
+from Projection.projection_algorithm_qiskit_2 import hamiltonian
+
+eigenvalues, eigenvectors = eigh(hamiltonian)
+eigenvalues = -58.94574155, ...
+qpe(
+    5,
+    PauliEvolutionGate(hamiltonian, time=2 * np.pi / 2**6),
+    initial_state=list(eigenvectors[:,0]),
+)
+{'01100': 67,
+ '01000': 126,
+ '10000': 125,
+ '00000': 271,
+ '11000': 506,
+ '10100': 286,
+ '11100': 421,
+ '00100': 246}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 See https://darveshiyat.medium.com/implementing-quantum-phase-estimation-algorithm-using-qiskit-e808e8167d32.
 I ported it into qiskit 2.2.3, and confirmed what he wrote in the blog. It implements `my_qpe`,
