@@ -9,7 +9,21 @@ from scipy.linalg import eigh
 
 from qpe import qpe
 
-# Confirm `initial_state` works.
+####################################################################################################
+# Q's
+# - The above works well. But it requires knowledge of eigenvalues and eigenvectors of the
+# Hamiltonian beforehand.
+# - Assuming we don't know them beforehand, we should choose t small enough, meaning we'd need
+# large enough precision.
+# - If t is too small, would it be practically possible to measure?
+# - Initial state prepared by Projection Algo seems to be the issue. Still looking.
+
+
+####################################################################################################
+# Demo
+
+# 1. Textbook example
+
 qc = QuantumCircuit(1)
 qc.append(XGate(), [0])
 
@@ -21,7 +35,8 @@ qpe(5, PhaseGate(2 * np.pi * (1 / 4 + 1 / 8 + 1 / 16)), initial_state=initial_st
 # {'01110': 1024}
 
 
-# Simple Ising Hamiltonian
+# 2. Simple Ising Hamiltonian
+
 H = SparsePauliOp(["ZI", "IZ", "ZZ"], coeffs=[0.33, 3.24, 1.17])
 e, v = np.linalg.eig(H)
 # e: array([ 4.74+0.j, -4.08+0.j,  1.74+0.j, -2.4 +0.j])
@@ -29,7 +44,6 @@ e, v = np.linalg.eig(H)
 #          [0.+0.j, 1.+0.j, 0.+0.j, 0.+0.j],
 #          [0.+0.j, 0.+0.j, 1.+0.j, 0.+0.j],
 #          [0.+0.j, 0.+0.j, 0.+0.j, 1.+0.j]])
-
 
 # Works well if t is small enough.
 U = PauliEvolutionGate(H, time=2 * np.pi / 2**3, synthesis=SuzukiTrotter(reps=2))
@@ -42,7 +56,6 @@ qpe(9, U, initial_state=list(v[0]))
 # {'011010001': 675, ...}
 # -> 2**3 * (1 - (1 / 2**2 + 1 / 2**3 + 1 / 2**5 + 1 / 2**9)) = 4.734375
 
-
 # If | H t | > 2π, the part of the phase larger than 2π is lost. I.e., either we at least know the
 # range of the eigenvalue beforehand, or we choose t small "enough".
 U = PauliEvolutionGate(H, time=2 * np.pi / 2, synthesis=SuzukiTrotter(reps=2))
@@ -50,70 +63,127 @@ qpe(5, U, initial_state=list(v[0]))
 # {'10100': 945, ...}
 # -> 2 * (1 - (1 / 2 + 1 / 2**3)) = 0.75
 
-
 # Negative eigenvalue
 U = PauliEvolutionGate(H, time=2 * np.pi / 2**3, synthesis=SuzukiTrotter(reps=2))
 qpe(5, U, initial_state=list(v[1]))
 # {'10000': 720, ...}
 # -> -2**3 * (1 / 2) = -4.0
 
-
 # Mixed state
 U = PauliEvolutionGate(H, time=2 * np.pi / 2**3, synthesis=SuzukiTrotter(reps=2))
 qpe(5, U, initial_state=list((v[0] + v[1]) / np.sqrt(2)))
 # {'01101': 505, '10000': 385, ...}
 
-
-# Q's
-# - The above works well. But it requires knowledge of eigenvalues and eigenvectors of the
-# Hamiltonian beforehand.
-# - Assuming we don't know them beforehand, we should choose t small enough, meaning we'd need
-# large enough precision.
-# - If t is too small, would it be practically possible to measure?
-# - Initial state prepared by Projection Algo seems to be the issue. Still looking.
-
-
-####################################################################################################
-
-# Couldn't find any bugs on the `qpe` function.
-# - consistently works for some well known Hamiltonians.
-# - compared with the qiskit implementation. Found its bug, instead.
-
-# It's not the initial state prepared by projection algorithm that misbehaves. The `qpe` shows
-# truncation even when fed the ground state of the given Hamiltonian. See below for experiments on
-# various Hamiltonians. Looks like truncation happens to seemingly random Hamiltonians.
-
-# Works for some
-
-# In the above, we saw `SparsePauliOp(["ZI", "IZ", "ZZ"], coeffs=[0.33, 3.24, 1.17])` worked well.
-
+# More examples
 H2 = SparsePauliOp.from_list([("ZZ", 1.0), ("XX", 0.5)])
 eigenvalues, eigenvectors = eigh(H2)
 eigenvalues = -1.5, -0.5, 0.5, 1.5
 qpe(6, PauliEvolutionGate(H2, time=2 * np.pi / 2**2), initial_state=list(eigenvectors[:,0]))
-{'011000': 2048}
+# {'011000': 2048}
 
 H3 = SparsePauliOp(["III", "ZZI", "IZZ"], coeffs=[-2, 0.5, 0.5])
 eigenvalues, eigenvectors = eigh(H3)
 eigenvalues = -3, ...
 qpe(6, PauliEvolutionGate(H3, time=2 * np.pi / 2**2), initial_state=list(eigenvectors[:,0]))
-{'110000': 2048}
+# {'110000': 2048}
 
 H4 = SparsePauliOp(["IIII", "ZZII", "IZZI", "IIZZ"], coeffs=[-2, 0.5, 0.5, 0.5])
 eigenvalues, eigenvectors = eigh(H4)
 eigenvalues = -3.5, ...
 qpe(6, PauliEvolutionGate(H4, time=2 * np.pi / 2**2), initial_state=list(eigenvectors[:,0]))
-{'111000': 2048}
+# {'111000': 2048}
 
-H6 = SparsePauliOp(["IIIIII", "ZZZIII", "IZZZII", "IIZZZI", "IIIZZZ"], coeffs=[-2.2, 0.33, 0.7, 0.52, 0.82])
+H6 = SparsePauliOp(
+    ["IIIIII", "ZZZIII", "IZZZII", "IIZZZI", "IIIZZZ"], coeffs=[-2.2, 0.33, 0.7, 0.52, 0.82]
+)
 eigenvalues, eigenvectors = eigh(H6)
 eigenvalues = -4.57, ...
 qpe(7, PauliEvolutionGate(H6, time=2 * np.pi / 2**3), initial_state=list(eigenvectors[:,0]))
-{'1001001': 1946, ...} -> 2**3 * (1 - (1 / 2**2 + 1 / 2**4 + 1 / 2**7)) = -4.5625
+# {'1001001': 1946, ...} -> 2**3 * (1 - (1 / 2**2 + 1 / 2**4 + 1 / 2**7)) = -4.5625
 
+
+# 3. Isotropic Heisenberg Hamiltonian
+
+def get_isotropic_heisenberg_hamiltonian(num_qubits, J=1.0):
+    """Constructs an Isotropic Heisenberg Hamiltonian for a 1D chain.
+
+    H = J * sum_{i} (X_i X_{i+1} + Y_i Y_{i+1} + Z_i Z_{i+1})
+    """
+    ham_list = []
+    # Iterate through adjacent pairs (nearest-neighbors)
+    for i in range(num_qubits - 1):
+        # Isotropic coupling: same J for XX, YY, and ZZ
+        ham_list.append(("XX", [i, i+1], J))
+        ham_list.append(("YY", [i, i+1], J))
+        ham_list.append(("ZZ", [i, i+1], J))
+
+    return SparsePauliOp.from_sparse_list(ham_list, num_qubits=num_qubits)
+
+# QPE correctly estimates the ground state energy -3.9 for 2-qubit Heisenberg model.
+heisenberg_h = get_isotropic_heisenberg_hamiltonian(num_qubits=2, J=1.3)
+eigenvalues, eigenvectors = eigh(heisenberg_h)
+eigenvalues = -3.9,  1.3,  1.3,  1.3
+qpe(
+    8,
+    PauliEvolutionGate(heisenberg_h, time=2 * np.pi / 2**2),
+    initial_state=list(eigenvectors[:,0]),
+)
+# {'11111010': 1185, ...} -> - 2**2 * (1/2 + 1/2**2 + 1/2**3 + 1/2**4 + 1/2**5 + 1/2**7) = -3.90625
+
+# Combined with Projection Algorithm.
+from Projection.projection_algorithm_generic import driver
+
+heisenberg_h = get_isotropic_heisenberg_hamiltonian(num_qubits=2, J=1.3)
+
+driver(heisenberg_h, 1e-20)
+# How the expectation value evolves over the iterations:
+[
+    np.float64(1.3),
+    np.float64(1.3),
+    np.float64(1.3000000000000003),
+    np.float64(1.229285887736236),
+    np.float64(0.7546713323766072),
+    np.float64(-3.900000000000001),
+    np.float64(-3.8999999999999995),
+    np.float64(-3.900000000000001),
+    np.float64(-3.900000000000001),
+]
+# Final statevector as the initial state after Projection Algorithm:
+initial_state = Statevector(
+    [
+        -1.78797332e-48 + 2.27893626e-64j,
+        -7.07106781e-01 + 7.12309193e-16j,
+        7.07106781e-01 - 7.12309193e-16j,
+        1.78797332e-48 + 6.83680878e-64j
+    ],
+    dims=(2, 2),
+)
+
+qpe(
+    8,
+    PauliEvolutionGate(heisenberg_h, time=2 * np.pi / 2**2),
+    initial_state=initial_state,
+)
+# {'11111010': 1160, ...}
+
+
+####################################################################################################
 
 # Truncation / Bad estimation
 
+# 4-qubit Heisenberg Hamiltonian
+heisenberg_h = get_isotropic_heisenberg_hamiltonian(num_qubits=4)
+eigenvalues, eigenvectors = eigh(heisenberg_h)
+eigenvalues = -6.46410162, -3.82842712, ...
+qpe(
+    8,
+    PauliEvolutionGate(heisenberg_h, time=2 * np.pi / 2**3),
+    initial_state=list(eigenvectors[:,0]),
+)
+# {'10100000': 1932, '00100000': 116}
+
+
+# TFIM Hamiltonian
 def get_tfim_hamiltonian(num_qubits, J=1.0, h=0.5):
     # (Pauli string, qubit indices, coefficient)
     interactions = [("ZZ", [i, i+1], -J) for i in range(num_qubits - 1)]
@@ -122,117 +192,15 @@ def get_tfim_hamiltonian(num_qubits, J=1.0, h=0.5):
     # Combine into a single list and build the operator
     return SparsePauliOp.from_sparse_list(interactions + fields, num_qubits=num_qubits)
 
-
 h2 = get_tfim_hamiltonian(2)
 eigenvalues, eigenvectors = eigh(h2)
 eigenvalues = -1.41421356, ...
 qpe(6, PauliEvolutionGate(h2, time=2 * np.pi / 2**2), initial_state=list(eigenvectors[:,0]))
-{'100000': 1025, '000000': 1023}
+# {'100000': 1025, '000000': 1023}
 
 
 h3 = get_tfim_hamiltonian(3)
 eigenvalues, eigenvectors = eigh(h3)
 eigenvalues = -2.40321193, ...
 qpe(6, PauliEvolutionGate(h3, time=2 * np.pi / 2**2), initial_state=list(eigenvectors[:,0]))
-{'011000': 1292, '111000': 756}
-
-
-from Projection.projection_algorithm_qiskit_2 import hamiltonian
-
-eigenvalues, eigenvectors = eigh(hamiltonian)
-eigenvalues = -58.94574155, ...
-qpe(
-    5,
-    PauliEvolutionGate(hamiltonian, time=2 * np.pi / 2**6),
-    initial_state=list(eigenvectors[:,0]),
-)
-{'01100': 67,
- '01000': 126,
- '10000': 125,
- '00000': 271,
- '11000': 506,
- '10100': 286,
- '11100': 421,
- '00100': 246}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-See https://darveshiyat.medium.com/implementing-quantum-phase-estimation-algorithm-using-qiskit-e808e8167d32.
-I ported it into qiskit 2.2.3, and confirmed what he wrote in the blog. It implements `my_qpe`,
-and interprets the results in the following way:
-
-`my_qpe`
-- employs e^{-i H t} as the unitary operator
-- returns a dictionary of counts of bitstrings measured from the ancilla qubits, e.g.,
-{'1010': 512, '0110': 256, ... }.
-- picks up the bitstring with the highest counts, e.g., '1010'.
-- calculate the phase = -H t = 2 * pi * decimal('1010') / 2^n, where n is the number of ancilla
-qubits. In a non-trivial example of a simple Ising Hamiltonian, he chose t = 1, and obtained
-H = 4.71238, whereas the exact eigenvalue is 4.74. So, not bad.
-
-But is this right? The phase works only by mod 2\pi, so when arbitrarily choosing t = 1,
-what if -H * 1 > 2\pi?
-
-In contrast, in our 4x3 Heisenberg lattice, I chose t to be small enough to make sure
-- H t < 2\pi. E.g., t = 2\pi / 2^7, and got the most frequent bitstring, e.g., '0110000',
-to obtain H = -48, whereas the exact ground state energy is -58.94574155.
-The initial state obtained by projection algorithm has the enrgy of -45.33332670286026,
-
-In [6]: qpe(7, PauliEvolutionGate(hamiltonian, time=2 * np.pi / 2**7), initial_state=init_state)
-Out[6]:
-{'1110000': 13,
- '0001000': 35,
- '1100000': 10,
- '1111000': 9,
- '1000000': 78,
- '1011000': 15,
- '0101000': 155,
- '0010000': 55,
- '0000000': 16,
- '0111000': 140,
- '0100000': 132,
- '1101000': 13,
- '1010000': 19,
- '1001000': 40,
- '0110000': 202,
- '0011000': 92}
-
-To see the trend, increase the precision with t fixed:
-
-In [7]: qpe(8, PauliEvolutionGate(hamiltonian, time=2 * np.pi / 2**7), initial_state=init_state)
-Out[7]:
-{'11110000': 6,
- '11000000': 21,
- '00000000': 27,
- '10100000': 9,
- '00110000': 85,
- '10010000': 42,
- '11100000': 8,
- '10000000': 58,
- '00100000': 74,
- '01010000': 152,
- '01000000': 139,
- '10110000': 8,
- '01100000': 191,
- '11010000': 14,
- '00010000': 47,
- '01110000': 143}
-
-I.e., no change: '01100000' is still the most frequent bitstring.
-
-Most of less significant bits are 0, so precision sucks.
+# {'011000': 1292, '111000': 756}
