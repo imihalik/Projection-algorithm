@@ -24,14 +24,14 @@ def projection_circuit(circuit):
     num_qubits = circuit.num_qubits
 
     qc = QuantumCircuit(num_qubits + len(aux_qubits), len(aux_qubits))
-    qc.append(circuit, range(len(aux_qubits), num_qubits + len(aux_qubits)))
+    qc.append(circuit, range(len(aux_qubits), len(aux_qubits) + num_qubits))
 
     for j, (t, delta) in enumerate(zip(times, phases)):
         aux_qubit = aux_qubits[j]
         qc.sdg(aux_qubit)
         qc.h(aux_qubit)
 
-        for i in range(len(aux_qubits), num_qubits + len(aux_qubits)):
+        for i in range(len(aux_qubits), len(aux_qubits) + num_qubits):
             qc.cx(aux_qubit, i)
             qc.rz(2 * t + delta, i)
             qc.cx(aux_qubit, i)
@@ -82,7 +82,8 @@ def apply_first_Jz_projection(num_qubits, H_matrix):
     )
 
 
-def apply_Jx_and_Jz_projection(normalized_vector, num_qubits, H_matrix):
+def apply_Jx_and_Jz_projection(normalized_vector, H_matrix):
+    num_qubits = normalized_vector.num_qubits
     circuit = QuantumCircuit(num_qubits)
     circuit.initialize(normalized_vector, range(num_qubits))
 
@@ -100,12 +101,12 @@ def driver(hamiltonian, threshold=1e-6):
     H_matrix = hamiltonian.to_matrix()
 
     v_0, e_p, e_0 = apply_first_Jz_projection(num_qubits, H_matrix)
-    v_c, e_c = apply_Jx_and_Jz_projection(v_0, num_qubits, H_matrix)
+    v_c, e_c = apply_Jx_and_Jz_projection(v_0, H_matrix)
     exp_vals = [e_0, e_p, e_c]
     while (diff := abs((e_c - e_p) / e_p)) > threshold:
         print(f"Energy % difference: {diff}")
         e_p = e_c
-        v_c, e_c = apply_Jx_and_Jz_projection(v_c, num_qubits, H_matrix)
+        v_c, e_c = apply_Jx_and_Jz_projection(v_c, H_matrix)
         exp_vals.append(e_c)
 
     return exp_vals, v_c

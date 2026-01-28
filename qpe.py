@@ -1,7 +1,7 @@
 import numpy as np
 from qiskit import QuantumCircuit, transpile
 from qiskit.circuit import Instruction
-from qiskit.circuit.library import QFT, PhaseGate, RZGate, TGate, XGate
+from qiskit.circuit.library import QFT
 from qiskit.quantum_info import Statevector
 from qiskit_aer import AerSimulator
 
@@ -42,10 +42,3 @@ def qpe(
 
     aer_sim = AerSimulator()
     return aer_sim.run(transpile(qpe_circuit, aer_sim), shots=2048).result().get_counts()
-
-
-# qpe(3, PhaseGate(2 * np.pi * (1 / 4 + 1 / 8)), XGate())
-# {'011': 1024}
-
-# qpe(3, TGate(), XGate())
-# {'001': 1024}
