@@ -35,35 +35,38 @@ qpe(5, PhaseGate(2 * np.pi * (1 / 4 + 1 / 8 + 1 / 16)), initial_state=initial_st
 
 # 2. Simple Ising Hamiltonian
 
-H = SparsePauliOp(["ZI", "IZ", "ZZ"], coeffs=[0.33, 3.24, 1.17])
+H = SparsePauliOp(["ZI", "IZ", "ZZ"], coeffs=[1.42, 2.19, 2.65])
 e, v = np.linalg.eig(H)
-# e: array([ 4.74+0.j, -4.08+0.j,  1.74+0.j, -2.4 +0.j])
+# e: array([ 6.26+0.j, -3.42+0.j, -1.88+0.j, -0.96+0.j])
 
 # Works well if t is small enough.
-U = PauliEvolutionGate(H, time=2 * np.pi / 2**3, synthesis=SuzukiTrotter(reps=2))
+U = PauliEvolutionGate(H, time=2 * np.pi / 2**3)
 
 qpe(5, U, initial_state=list(v[:,0]))
-# {'01100': 2, '01011': 1, '01110': 2, '10001': 1, '01101': 2042}
-# -> 2**3 * (1 - (1 / 2**2 + 1 / 2**3 + 1 / 2**5)) = 4.75
-
+# {'01001': 1, '00110': 4, '00100': 1, '01101': 1, '01000': 7, '00111': 2034}
+# -> 2**3 * (1 - (1/2**3 + 1/2**4 + 1/2**5)) = 6.25
 qpe(9, U, initial_state=list(v[:,0]))
-# {'011010001': 1309, ...} -> 2**3 * (1 - (1 / 2**2 + 1 / 2**3 + 1 / 2**5 + 1 / 2**9)) = 4.734375
+# {'001101111': 1343, ...}
+# -> 2**3 * (1 - (1/2**3 + 1/2**4 + 1/2**6 + 1/2**7 + 1/2**8 + 1/2**9)) = 6.265625
+
+# Negative eigenvalue
+U = PauliEvolutionGate(H, time=2 * np.pi / 2**2)
+qpe(5, U, initial_state=list(v[:,1]))
+# {'11011': 1238, ...} -> -2**2 * (1/2 + 1/2**2 + 1/2**4 + 1/2**5) = -3.375
+qpe(9, U, initial_state=list(v[:,1]))
+# {'110110110': 1701, ...}
+# -> -2**2 * (1/2 + 1/2**2 + 1/2**4 + 1/2**5 + 1/2**7 + 1/2**8) = -3.421875
 
 # If | H t | > 2π, the part of the phase larger than 2π is lost. I.e., either we at least know the
 # range of the eigenvalue beforehand, or we choose t small "enough".
-U = PauliEvolutionGate(H, time=2 * np.pi / 2, synthesis=SuzukiTrotter(reps=2))
+U = PauliEvolutionGate(H, time=2 * np.pi / 2)
 qpe(5, U, initial_state=list(v[:,0]))
-# {'10100': 945, ...} -> 2 * (1 - (1 / 2 + 1 / 2**3)) = 0.75
-
-# Negative eigenvalue
-U = PauliEvolutionGate(H, time=2 * np.pi / 2**3, synthesis=SuzukiTrotter(reps=2))
-qpe(5, U, initial_state=list(v[:,1]))
-# {'10000': 720, ...} -> -2**3 * (1 / 2) = -4.0
+# {'11100': 1873, ...} -> 2 * (1 - (1/2 + 1/2**2 + 1/2**3)) = 0.25
 
 # Mixed state
-U = PauliEvolutionGate(H, time=2 * np.pi / 2**3, synthesis=SuzukiTrotter(reps=2))
+U = PauliEvolutionGate(H, time=2 * np.pi / 2**3)
 qpe(5, U, initial_state=list((v[:,0] + v[:,1]) / np.sqrt(2)))
-# {'01101': 505, '10000': 385, ...}
+# {'00111': 1035, '01110': 704, ...}
 
 # More examples
 H2 = SparsePauliOp.from_list([("ZZ", 1.0), ("XX", 0.5)])
@@ -90,7 +93,7 @@ H6 = SparsePauliOp(
 eigenvalues, eigenvectors = eigh(H6)
 eigenvalues = -4.57, ...
 qpe(7, PauliEvolutionGate(H6, time=2 * np.pi / 2**3), initial_state=list(eigenvectors[:,0]))
-# {'1001001': 1946, ...} -> 2**3 * (1 - (1 / 2**2 + 1 / 2**4 + 1 / 2**7)) = -4.5625
+# {'1001001': 1943, ...} -> -2**3 * (1/2 + 1/2**4 + 1/2**7) = -4.5625
 
 
 # 3. Isotropic Heisenberg Hamiltonian
@@ -114,12 +117,35 @@ def get_isotropic_1d_heisenberg_hamiltonian(num_qubits, J=1.0):
 heisenberg_h = get_isotropic_1d_heisenberg_hamiltonian(num_qubits=2, J=1.3)
 eigenvalues, eigenvectors = eigh(heisenberg_h)
 # eigenvalues = -3.9,  1.3,  1.3,  1.3
+
 qpe(
-    8,
+    5,
     PauliEvolutionGate(heisenberg_h, time=2 * np.pi / 2**2),
     initial_state=list(eigenvectors[:,0]),
 )
-# {'11111010': 1185, ...} -> - 2**2 * (1/2 + 1/2**2 + 1/2**3 + 1/2**4 + 1/2**5 + 1/2**7) = -3.90625
+# {'11111': 1794,, ...} -> -2**2 * (1/2 + 1/2**2 + 1/2**3 + 1/2**4 + 1/2**5) = -3.875
+qpe(
+    9,
+    PauliEvolutionGate(heisenberg_h, time=2 * np.pi / 2**2),
+    initial_state=list(eigenvectors[:,0]),
+)
+# {'111110011': 1776, ...}
+# -> -2**2 * (1/2 + 1/2**2 + 1/2**3 + 1/2**4 + 1/2**5 + 1/2**8 + 1/2**9) = -3.8984375
+
+qpe(
+    5,
+    PauliEvolutionGate(heisenberg_h, time=2 * np.pi / 2**2),
+    initial_state=list(eigenvectors[:,1]),
+)
+# {'10110': 1130, ...} -> 2**2 * (1 - (1/2 + 1/2**3 + 1/2**4)) = 1.25
+qpe(
+    9,
+    PauliEvolutionGate(heisenberg_h, time=2 * np.pi / 2**2),
+    initial_state=list(eigenvectors[:,1]),
+)
+# {'101011010': 1156, ...} -> 2**2 * (1 - (1/2 + 1/2**3 + 1/2**5 + 1/2**6 + 1/2**8)) = 1.296875
+
+
 
 # Combined with Projection Algorithm.
 
