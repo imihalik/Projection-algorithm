@@ -7,7 +7,7 @@ from qiskit.synthesis import SuzukiTrotter
 from qiskit_aer import StatevectorSimulator
 from scipy.linalg import eigh
 
-from Projection.projection_algorithm_generic import driver
+from projection_algorithm import driver
 from qpe import qpe
 
 
@@ -40,7 +40,7 @@ e, v = np.linalg.eig(H)
 # e: array([ 6.26+0.j, -3.42+0.j, -1.88+0.j, -0.96+0.j])
 
 # Works well if t is small enough.
-U = PauliEvolutionGate(H, time=2 * np.pi / 2**3)
+U = PauliEvolutionGate(H, time=2 * np.pi / 2**3, synthesis=SuzukiTrotter(reps=2))
 
 qpe(5, U, initial_state=list(v[:,0]))
 # {'01001': 1, '00110': 4, '00100': 1, '01101': 1, '01000': 7, '00111': 2034}
@@ -146,16 +146,16 @@ qpe(
 # {'101011010': 1156, ...} -> 2**2 * (1 - (1/2 + 1/2**3 + 1/2**5 + 1/2**6 + 1/2**8)) = 1.296875
 
 
-
-# Combined with Projection Algorithm.
+# Combine with Projection Algorithm.
 
 exp_vals, initial_state = driver(heisenberg_h, 1e-20)
 qpe(
-    8,
+    9,
     PauliEvolutionGate(heisenberg_h, time=2 * np.pi / 2**2),
     initial_state=initial_state,
 )
-# {'11111010': 1160, ...} -> - 2**2 * (1/2 + 1/2**2 + 1/2**3 + 1/2**4 + 1/2**5 + 1/2**7) = 3.90625
+# {'111110011': 1781, ...}
+# -> -2**2 * (1/2 + 1/2**2 + 1/2**3 + 1/2**4 + 1/2**5 + 1/2**8 + 1/2**9) = -3.8984375
 
 
 ####################################################################################################
