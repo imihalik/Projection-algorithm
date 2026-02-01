@@ -1,14 +1,12 @@
 import numpy as np
-from qiskit import transpile
-from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import PauliEvolutionGate, PhaseGate, TGate, XGate
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.synthesis import SuzukiTrotter
-from qiskit_aer import StatevectorSimulator
 from scipy.linalg import eigh
 
 from projection_algorithm import driver
 from qpe import qpe
+from utils import get_isotropic_1d_heisenberg_hamiltonian, phase_to_eigenvalue
 
 
 ####################################################################################################
@@ -16,146 +14,118 @@ from qpe import qpe
 
 # 1. Textbook examples
 
-qpe(3, PhaseGate(2 * np.pi * (1 / 4 + 1 / 8)), XGate())
-# {'011': 1024}
+qpe(3, PhaseGate(2 * np.pi * (1 / 4 + 1 / 8)), XGate(), to_phase=False)
+# {'011': 1.0}
 
-qpe(3, TGate(), XGate())
-# {'001': 1024}
-
-qc = QuantumCircuit(1)
-qc.append(XGate(), [0])
-
-simulator = StatevectorSimulator()
-statevector = simulator.run(transpile(qc, simulator)).result().get_statevector()
-initial_state = statevector / np.linalg.norm(statevector)
-
-qpe(5, PhaseGate(2 * np.pi * (1 / 4 + 1 / 8 + 1 / 16)), initial_state=initial_state)
-# {'01110': 1024}
+qpe(3, TGate(), XGate(), to_phase=False)
+# {'001': 1.0}
 
 
 # 2. Simple Ising Hamiltonian
-
 H = SparsePauliOp(["ZI", "IZ", "ZZ"], coeffs=[1.42, 2.19, 2.65])
 e, v = np.linalg.eig(H)
 # e: array([ 6.26+0.j, -3.42+0.j, -1.88+0.j, -0.96+0.j])
 
 # Works well if t is small enough.
-U = PauliEvolutionGate(H, time=2 * np.pi / 2**3, synthesis=SuzukiTrotter(reps=2))
+t = 2 * np.pi / 2**3
+U = PauliEvolutionGate(H, time=t, synthesis=SuzukiTrotter(reps=2))
 
 qpe(5, U, initial_state=list(v[:,0]))
-# {'01001': 1, '00110': 4, '00100': 1, '01101': 1, '01000': 7, '00111': 2034}
-# -> 2**3 * (1 - (1/2**3 + 1/2**4 + 1/2**5)) = 6.25
+# {0.21875: 0.994140625, 0.1875: 0.001953125, 0.25: 0.00146484375}
+phase_to_eigenvalue(0.21875, t)
+# -1.75 (X), 6.25 (O)
+
 qpe(9, U, initial_state=list(v[:,0]))
-# {'001101111': 1343, ...}
-# -> 2**3 * (1 - (1/2**3 + 1/2**4 + 1/2**6 + 1/2**7 + 1/2**8 + 1/2**9)) = 6.265625
+# {0.216796875: 0.64306640625, 0.21875: 0.20166015625, 0.21484375: 0.0439453125}
+# -> -1.734375 (X), 6.265625 (O)
 
 # Negative eigenvalue
-U = PauliEvolutionGate(H, time=2 * np.pi / 2**2)
+t = 2 * np.pi / 2**2
+U = PauliEvolutionGate(H, time=t)
 qpe(5, U, initial_state=list(v[:,1]))
-# {'11011': 1238, ...} -> -2**2 * (1/2 + 1/2**2 + 1/2**4 + 1/2**5) = -3.375
+# {0.84375: 0.640625, 0.875: 0.20263671875, 0.8125: 0.0400390625}
+# -> -3.375 (O), 0.625 (X)
+
 qpe(9, U, initial_state=list(v[:,1]))
-# {'110110110': 1701, ...}
-# -> -2**2 * (1/2 + 1/2**2 + 1/2**4 + 1/2**5 + 1/2**7 + 1/2**8) = -3.421875
+# {0.85546875: 0.814453125, 0.853515625: 0.099609375, 0.857421875: 0.02880859375}
+# -3.4218750000000004 (O), 0.578125 (X)
 
 # If | H t | > 2π, the part of the phase larger than 2π is lost. I.e., either we at least know the
 # range of the eigenvalue beforehand, or we choose t small "enough".
-U = PauliEvolutionGate(H, time=2 * np.pi / 2)
+t = 2 * np.pi
+U = PauliEvolutionGate(H, time=t)
 qpe(5, U, initial_state=list(v[:,0]))
-# {'11100': 1873, ...} -> 2 * (1 - (1/2 + 1/2**2 + 1/2**3)) = 0.25
+# {0.75: 0.703125, 0.71875: 0.162109375, 0.78125: 0.04736328125}
+# -0.75 (X), 0.25 (X)
 
 # Mixed state
-U = PauliEvolutionGate(H, time=2 * np.pi / 2**3)
+t = 2 * np.pi / 2**3
+U = PauliEvolutionGate(H, time=t)
 qpe(5, U, initial_state=list((v[:,0] + v[:,1]) / np.sqrt(2)))
-# {'00111': 1035, '01110': 704, ...}
+# {0.21875: 0.484375, 0.4375: 0.36669921875, 0.40625: 0.083984375}
+# -> 6.25 for the 0 state, -3.5 for the 1 state
 
 # More examples
 H2 = SparsePauliOp.from_list([("ZZ", 1.0), ("XX", 0.5)])
 eigenvalues, eigenvectors = eigh(H2)
 # eigenvalues = -1.5, -0.5, 0.5, 1.5
-qpe(6, PauliEvolutionGate(H2, time=2 * np.pi / 2**2), initial_state=list(eigenvectors[:,0]))
-# {'011000': 2048} -> -1.5
-
-H3 = SparsePauliOp(["III", "ZZI", "IZZ"], coeffs=[-2, 0.5, 0.5])
-eigenvalues, eigenvectors = eigh(H3)
-eigenvalues = -3, ...
-qpe(6, PauliEvolutionGate(H3, time=2 * np.pi / 2**2), initial_state=list(eigenvectors[:,0]))
-# {'110000': 2048} -> -3
-
-H4 = SparsePauliOp(["IIII", "ZZII", "IZZI", "IIZZ"], coeffs=[-2, 0.5, 0.5, 0.5])
-eigenvalues, eigenvectors = eigh(H4)
-eigenvalues = -3.5, ...
-qpe(6, PauliEvolutionGate(H4, time=2 * np.pi / 2**2), initial_state=list(eigenvectors[:,0]))
-# {'111000': 2048} -> -3.5
+t = 2 * np.pi / 2**2
+qpe(6, PauliEvolutionGate(H2, time=t), initial_state=list(eigenvectors[:,0]))
+# {0.375: 1.0} -> -1.5
 
 H6 = SparsePauliOp(
     ["IIIIII", "ZZZIII", "IZZZII", "IIZZZI", "IIIZZZ"], coeffs=[-2.2, 0.33, 0.7, 0.52, 0.82]
 )
 eigenvalues, eigenvectors = eigh(H6)
-eigenvalues = -4.57, ...
-qpe(7, PauliEvolutionGate(H6, time=2 * np.pi / 2**3), initial_state=list(eigenvectors[:,0]))
-# {'1001001': 1943, ...} -> -2**3 * (1/2 + 1/2**4 + 1/2**7) = -4.5625
+# eigenvalues = -4.57, ...
+t = 2 * np.pi / 2**3
+qpe(7, PauliEvolutionGate(H6, time=t), initial_state=list(eigenvectors[:,0]))
+# {0.5703125: 0.95751953125, 0.578125: 0.01318359375, 0.5625: 0.01171875} -> -4.5625
 
 
 # 3. Isotropic Heisenberg Hamiltonian
-
-def get_isotropic_1d_heisenberg_hamiltonian(num_qubits, J=1.0):
-    """Constructs an Isotropic Heisenberg Hamiltonian for a 1D chain.
-
-    H = J * sum_{i} (X_i X_{i+1} + Y_i Y_{i+1} + Z_i Z_{i+1})
-    """
-    ham_list = []
-    # Iterate through adjacent pairs (nearest-neighbors)
-    for i in range(num_qubits - 1):
-        # Isotropic coupling: same J for XX, YY, and ZZ
-        ham_list.append(("XX", [i, i+1], J))
-        ham_list.append(("YY", [i, i+1], J))
-        ham_list.append(("ZZ", [i, i+1], J))
-
-    return SparsePauliOp.from_sparse_list(ham_list, num_qubits=num_qubits)
-
 # QPE correctly estimates the ground state energy -3.9 for 2-qubit Heisenberg model.
 heisenberg_h = get_isotropic_1d_heisenberg_hamiltonian(num_qubits=2, J=1.3)
 eigenvalues, eigenvectors = eigh(heisenberg_h)
 # eigenvalues = -3.9,  1.3,  1.3,  1.3
 
+t = 2 * np.pi / 2**2
 qpe(
     5,
-    PauliEvolutionGate(heisenberg_h, time=2 * np.pi / 2**2),
+    PauliEvolutionGate(heisenberg_h, time=t),
     initial_state=list(eigenvectors[:,0]),
 )
-# {'11111': 1794,, ...} -> -2**2 * (1/2 + 1/2**2 + 1/2**3 + 1/2**4 + 1/2**5) = -3.875
+# {0.96875: 0.87890625, 0.0: 0.0498046875, 0.9375: 0.0302734375} -> -3.875
 qpe(
     9,
-    PauliEvolutionGate(heisenberg_h, time=2 * np.pi / 2**2),
+    PauliEvolutionGate(heisenberg_h, time=t),
     initial_state=list(eigenvectors[:,0]),
 )
-# {'111110011': 1776, ...}
-# -> -2**2 * (1/2 + 1/2**2 + 1/2**3 + 1/2**4 + 1/2**5 + 1/2**8 + 1/2**9) = -3.8984375
+# {0.974609375: 0.8857421875, 0.9765625: 0.0478515625, 0.97265625: 0.02783203125} -> -3.8984375
 
 qpe(
     5,
-    PauliEvolutionGate(heisenberg_h, time=2 * np.pi / 2**2),
+    PauliEvolutionGate(heisenberg_h, time=t),
     initial_state=list(eigenvectors[:,1]),
 )
-# {'10110': 1130, ...} -> 2**2 * (1 - (1/2 + 1/2**3 + 1/2**4)) = 1.25
+# {0.6875: 0.58154296875, 0.65625: 0.248046875, 0.71875: 0.04638671875} -> 1.25
 qpe(
     9,
-    PauliEvolutionGate(heisenberg_h, time=2 * np.pi / 2**2),
+    PauliEvolutionGate(heisenberg_h, time=t),
     initial_state=list(eigenvectors[:,1]),
 )
-# {'101011010': 1156, ...} -> 2**2 * (1 - (1/2 + 1/2**3 + 1/2**5 + 1/2**6 + 1/2**8)) = 1.296875
+# {0.67578125: 0.55224609375, 0.673828125: 0.26806640625, 0.677734375: 0.04931640625} -> 1.296875
 
 
 # Combine with Projection Algorithm.
-
-exp_vals, initial_state = driver(heisenberg_h, 1e-20)
+_, initial_state = driver(heisenberg_h, 1e-20)
+t = 2 * np.pi / 2**2
 qpe(
     9,
-    PauliEvolutionGate(heisenberg_h, time=2 * np.pi / 2**2),
+    PauliEvolutionGate(heisenberg_h, time=t),
     initial_state=initial_state,
 )
-# {'111110011': 1781, ...}
-# -> -2**2 * (1/2 + 1/2**2 + 1/2**3 + 1/2**4 + 1/2**5 + 1/2**8 + 1/2**9) = -3.8984375
+# {0.974609375: 0.8662109375, 0.9765625: 0.06298828125, 0.97265625: 0.0244140625} -> -3.8984375
 
 
 ####################################################################################################

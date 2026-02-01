@@ -4,7 +4,7 @@ from qiskit.quantum_info import Statevector
 from qiskit_aer import AerSimulator
 
 
-def iqpe(U, initial_state, num_bits: int):
+def iqpe(U, initial_state, num_bits: int) -> tuple[float, list[int]]:
     if isinstance(initial_state, Statevector):
         psi = initial_state
     else:
@@ -17,7 +17,7 @@ def iqpe(U, initial_state, num_bits: int):
     bits = []
     omega_coef = 0.0
 
-    # Iterate from least significant bit down to most
+    # Iterate from the least significant bit up to the most
     for k in range(num_bits, 0, -1):
         omega_coef /= 2.0
         power = 2 ** (k - 1)
@@ -30,7 +30,7 @@ def iqpe(U, initial_state, num_bits: int):
         qc.h(0)
 
         # 2. Controlled-U^(2^{k-1})
-        qc.append(U.control().power(power), [0] + list(range(1, 1 + n_sys)))
+        qc.append(U.control().power(power), [0] + state_qubits)
 
         # 3. Feedback phase
         qc.p(-2 * np.pi * omega_coef, 0)
@@ -57,19 +57,5 @@ def iqpe(U, initial_state, num_bits: int):
         bits.append(bit)
         omega_coef += bit / 2.0
 
-    phi_est = omega_coef % 1.0
-    return phi_est, bits
-
-
-def unwrap_phase(phi_wrapped: float) -> float:
-    """Map a phase in [0,1) to (-0.5, 0.5] for energy reconstruction."""
-    return phi_wrapped if phi_wrapped <= 0.5 else phi_wrapped - 1.0
-
-
-def energy_from_phase(phi_wrapped: float, t_evolution: float) -> float:
-    """
-    Given φ in [0,1) for U = exp(-i H t),
-    φ ≈ -E t / (2π) mod 1 → E ≈ -2π * φ_unwrapped / t.
-    """
-    phi_cont = unwrap_phase(phi_wrapped)
-    return -2 * np.pi * phi_cont / t_evolution
+    bits.reverse()
+    return omega_coef, bits
