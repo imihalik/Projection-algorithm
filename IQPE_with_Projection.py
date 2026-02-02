@@ -6,7 +6,7 @@ from scipy.linalg import eigh
 
 from projection_algorithm import driver
 from iqpe import iqpe
-from utils import get_isotropic_1d_heisenberg_hamiltonian, phase_to_eigenvalue
+from utils import bitstring_to_eigenvalue, get_isotropic_1d_heisenberg_hamiltonian
 
 
 # 1. Textbook examples
@@ -23,33 +23,43 @@ H = SparsePauliOp(["ZI", "IZ", "ZZ"], coeffs=[1.42, 2.19, 2.65])
 e, v = np.linalg.eig(H)
 # e = array([ 6.26+0.j, -3.42+0.j, -1.88+0.j, -0.96+0.j])
 
-t = 2 * np.pi / 2**3
+def imeasure_H(precision, init_state):
+    for n in range(10):
+        print(
+            iqpe(
+                U=PauliEvolutionGate(H, time=2 * np.pi / 2**n),
+                initial_state=init_state,
+                num_bits=precision,
+            )
+        )
+
+t = 2 * np.pi / 2**4
 iqpe(
     U=PauliEvolutionGate(H, time=t, synthesis=SuzukiTrotter(reps=2)),
     initial_state=v[:, 0],
     num_bits=5,
 )
-# 0.21875
-phase_to_eigenvalue(0.21875, t)
-# -1.75 (X), 6.25 (O)
+#  [1, 0, 0, 1, 1]
+bitstring_to_eigenvalue("10011", t)
+# 6.5
 
 iqpe(
     U=PauliEvolutionGate(H, time=t, synthesis=SuzukiTrotter(reps=2)),
     initial_state=v[:, 0],
     num_bits=9,
 )
-# 0.216796875
-phase_to_eigenvalue(0.216796875, t)
-# -1.734375 (X), 6.265625 (O)
+# [1, 0, 0, 1, 1, 1, 0, 0, 0]
+bitstring_to_eigenvalue("100111000", t)
+# 6.25
 
-t = 2 * np.pi / 2**2
+t = 2 * np.pi / 2**3
 iqpe(
     U=PauliEvolutionGate(H, time=t),
     initial_state=v[:, 1],
     num_bits=5,
 )
-# num_bits 5: 0.84375 -> -3.375
-# num_bits 9: 0.85546875 -> -3.421875
+# num_bits 5: -3.35
+# num_bits 9: -3.421875
 
 
 # 3. Isotropic Heisenberg Hamiltonian
@@ -75,7 +85,7 @@ iqpe(
 # num_bits 9: 0.67578125 -> 1.296875
 
 
-# Combine with Projection Algorithm.
+# 4. Combine with Projection Algorithm.
 e, v = driver(heisenberg_h, 1e-20)
 
 iqpe(

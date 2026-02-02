@@ -6,7 +6,7 @@ from scipy.linalg import eigh
 
 from projection_algorithm import driver
 from qpe import qpe
-from utils import get_isotropic_1d_heisenberg_hamiltonian, phase_to_eigenvalue
+from utils import bitstring_to_eigenvalue, get_isotropic_1d_heisenberg_hamiltonian
 
 
 ####################################################################################################
@@ -21,56 +21,76 @@ qpe(3, TGate(), XGate(), to_phase=False)
 # {'001': 1.0}
 
 
-# 2. Simple Ising Hamiltonian
+# 2. Full workflow with Simple Ising Hamiltonian
+
 H = SparsePauliOp(["ZI", "IZ", "ZZ"], coeffs=[1.42, 2.19, 2.65])
 e, v = np.linalg.eig(H)
 # e: array([ 6.26+0.j, -3.42+0.j, -1.88+0.j, -0.96+0.j])
 
-# Works well if t is small enough.
-t = 2 * np.pi / 2**3
-U = PauliEvolutionGate(H, time=t, synthesis=SuzukiTrotter(reps=2))
+def measure_H(precision, init_state):
+    for n in range(10):
+        print(
+            qpe(
+                precision,
+                PauliEvolutionGate(H, time=2 * np.pi / 2**n),
+                initial_state=init_state,
+            )
+        )
 
-qpe(5, U, initial_state=list(v[:,0]))
-# {0.21875: 0.994140625, 0.1875: 0.001953125, 0.25: 0.00146484375}
-phase_to_eigenvalue(0.21875, t)
-# -1.75 (X), 6.25 (O)
+# positive eigenvalue
+measure_H(7, list(v[:,0]))
+# {'1011111': 0.76904296875, '1011110': 0.11767578125, '1100000': 0.03662109375}
+# {'1101111': 0.63134765625, '1110000': 0.2080078125, '1101110': 0.046875}
+# {'0111000': 0.71630859375, '0110111': 0.146484375, '0111001': 0.0380859375}
+# {'0011100': 0.8984375, '0011011': 0.0380859375, '0011101': 0.02294921875}
+# {'1001110': 0.974609375, '1001111': 0.0087890625, '1001101': 0.00830078125}
+# {'1100111': 0.99755859375, '1100100': 0.0009765625, '1101100': 0.00048828125}
+# {'1110011': 0.44140625, '1110100': 0.3662109375, '1110101': 0.0439453125}
+# {'1111010': 0.79638671875, '1111001': 0.09375, '1111011': 0.03564453125}
+# {'1111101': 0.93994140625, '1111100': 0.02392578125, '1111110': 0.01318359375}
+# {'1111110': 0.5205078125, '1111111': 0.30517578125, '1111101': 0.04345703125}
 
-qpe(9, U, initial_state=list(v[:,0]))
-# {0.216796875: 0.64306640625, 0.21875: 0.20166015625, 0.21484375: 0.0439453125}
-# -> -1.734375 (X), 6.265625 (O)
+# As t decreases, bitstring approaches 111..., signifying the phase is negative. Choose anything
+# larger than 0.5 in the increasing sequence.
 
-# Negative eigenvalue
-t = 2 * np.pi / 2**2
-U = PauliEvolutionGate(H, time=t)
-qpe(5, U, initial_state=list(v[:,1]))
-# {0.84375: 0.640625, 0.875: 0.20263671875, 0.8125: 0.0400390625}
-# -> -3.375 (O), 0.625 (X)
+bitstring_to_eigenvalue("1100111", 2 * np.pi / 2**5)
+# 6.25
 
-qpe(9, U, initial_state=list(v[:,1]))
-# {0.85546875: 0.814453125, 0.853515625: 0.099609375, 0.857421875: 0.02880859375}
-# -3.4218750000000004 (O), 0.578125 (X)
+# Similarly for precision=5: 6.25, precision=9: 6.265625
 
-# If | H t | > 2π, the part of the phase larger than 2π is lost. I.e., either we at least know the
-# range of the eigenvalue beforehand, or we choose t small "enough".
-t = 2 * np.pi
-U = PauliEvolutionGate(H, time=t)
-qpe(5, U, initial_state=list(v[:,0]))
-# {0.75: 0.703125, 0.71875: 0.162109375, 0.78125: 0.04736328125}
-# -0.75 (X), 0.25 (X)
+# negative eigenvalue
+measure_H(7, list(v[:,1]))
+# {'0110110': 0.833984375, '0110101': 0.07373046875, '0110111': 0.03466796875}
+# {'1011011': 0.9580078125, '1011010': 0.01513671875, '1011100': 0.01123046875}
+# {'1101101': 0.505859375, '1101110': 0.31005859375, '1101100': 0.0498046875}
+# {'0110111': 0.7578125, '0110110': 0.123046875, '0111000': 0.0400390625}
+# {'0011011': 0.63720703125, '0011100': 0.2060546875, '0011010': 0.044921875}
+# {'0001110': 0.6845703125, '0001101': 0.15673828125, '0001111': 0.04296875}
+# {'0000111': 0.91064453125, '0000110': 0.041015625, '0001000': 0.017578125}
+# {'0000011': 0.52490234375, '0000100': 0.2841796875, '0000010': 0.05029296875}
+# {'0000010': 0.75146484375, '0000001': 0.12646484375, '0000011': 0.03564453125}
+# {'0000001': 0.9267578125, '0000000': 0.0322265625, '0000010': 0.01513671875}
 
-# Mixed state
-t = 2 * np.pi / 2**3
-U = PauliEvolutionGate(H, time=t)
-qpe(5, U, initial_state=list((v[:,0] + v[:,1]) / np.sqrt(2)))
-# {0.21875: 0.484375, 0.4375: 0.36669921875, 0.40625: 0.083984375}
-# -> 6.25 for the 0 state, -3.5 for the 1 state
+# As t decreases, bitstring approaches 000..., signifying the phase is positive. Choose anything
+# smaller than 0.5 in the decreasing sequence.
 
-# More examples
+bitstring_to_eigenvalue("0110111", 2 * np.pi / 2**3)
+# -3.4375
+
+# Similarly for precision=5: -3.375, precision=9: -3.421875
+
+
+# 3. More examples
+
 H2 = SparsePauliOp.from_list([("ZZ", 1.0), ("XX", 0.5)])
 eigenvalues, eigenvectors = eigh(H2)
 # eigenvalues = -1.5, -0.5, 0.5, 1.5
 t = 2 * np.pi / 2**2
-qpe(6, PauliEvolutionGate(H2, time=t), initial_state=list(eigenvectors[:,0]))
+qpe(
+    6,
+    PauliEvolutionGate(H2, time=t, synthesis=SuzukiTrotter(reps=2)),
+    initial_state=list(eigenvectors[:,0]),
+)
 # {0.375: 1.0} -> -1.5
 
 H6 = SparsePauliOp(
@@ -83,7 +103,8 @@ qpe(7, PauliEvolutionGate(H6, time=t), initial_state=list(eigenvectors[:,0]))
 # {0.5703125: 0.95751953125, 0.578125: 0.01318359375, 0.5625: 0.01171875} -> -4.5625
 
 
-# 3. Isotropic Heisenberg Hamiltonian
+# 4. Isotropic Heisenberg Hamiltonian
+
 # QPE correctly estimates the ground state energy -3.9 for 2-qubit Heisenberg model.
 heisenberg_h = get_isotropic_1d_heisenberg_hamiltonian(num_qubits=2, J=1.3)
 eigenvalues, eigenvectors = eigh(heisenberg_h)
@@ -117,7 +138,7 @@ qpe(
 # {0.67578125: 0.55224609375, 0.673828125: 0.26806640625, 0.677734375: 0.04931640625} -> 1.296875
 
 
-# Combine with Projection Algorithm.
+# 5. Combine with Projection Algorithm.
 _, initial_state = driver(heisenberg_h, 1e-20)
 t = 2 * np.pi / 2**2
 qpe(

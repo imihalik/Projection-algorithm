@@ -2,12 +2,10 @@ import numpy as np
 from qiskit.quantum_info import SparsePauliOp
 
 
-def phase_to_eigenvalue(phi: float, t_evolution: float) -> float:
-    """
-    Given φ in [0,1) for U = exp(-i H t),
-    φ ≈ -E t / (2π) mod 1 → E ≈ -2π * φ_unwrapped / t.
-    """
-    return -2 * np.pi * phi / t_evolution, -2 * np.pi * (phi - 1) / t_evolution
+def bitstring_to_eigenvalue(bits: str, t_evolution: float) -> float:
+    """Convert the measured bitstring to the eigenvalue of the Hamiltonian."""
+    phi = sum(int(bit) * 2**(-i) for i, bit in enumerate(bits, start=1))
+    return -2 * np.pi * ((phi - 1) if phi > 0.5 else phi) / t_evolution
 
 
 def get_isotropic_1d_heisenberg_hamiltonian(num_qubits, J=1.0):
