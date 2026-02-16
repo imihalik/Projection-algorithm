@@ -3,6 +3,7 @@ from qiskit.circuit import Instruction
 from qiskit.circuit.library import QFT
 from qiskit.quantum_info import Statevector
 from qiskit_aer import AerSimulator
+from qiskit_aer.noise import NoiseModel
 
 
 def qpe(
@@ -12,6 +13,7 @@ def qpe(
     initial_state: Statevector | None = None,
     top_n: int | None = 3,
     sim_shots: int = 2048,
+    noise_model: NoiseModel | None = None,
 ) -> dict:
     num_state_qubits = unitary.num_qubits
     state_qubits = list(range(precision, precision + num_state_qubits))
@@ -41,7 +43,7 @@ def qpe(
     for digit in ancilla_qubits:
         qpe_circuit.measure(digit, digit)
 
-    aer_sim = AerSimulator()
+    aer_sim = AerSimulator(noise_model=noise_model)
     distribution = sorted(
         aer_sim.run(transpile(qpe_circuit, aer_sim), shots=sim_shots).result().get_counts().items(),
         key=lambda x: x[1],

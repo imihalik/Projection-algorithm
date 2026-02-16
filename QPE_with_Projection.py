@@ -2,6 +2,7 @@ import numpy as np
 from qiskit.circuit.library import PauliEvolutionGate, PhaseGate, TGate, XGate
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.synthesis import SuzukiTrotter
+from qiskit_aer.noise import NoiseModel, errors
 from scipy.linalg import eigh
 
 from projection_algorithm import driver
@@ -14,10 +15,10 @@ from utils import bitstring_to_eigenvalue, get_isotropic_1d_heisenberg_hamiltoni
 
 # 1. Textbook examples
 
-qpe(3, PhaseGate(2 * np.pi * (1 / 4 + 1 / 8)), XGate(), to_phase=False)
+qpe(3, PhaseGate(2 * np.pi * (1 / 4 + 1 / 8)), XGate())
 # {'011': 1.0}
 
-qpe(3, TGate(), XGate(), to_phase=False)
+qpe(3, TGate(), XGate())
 # {'001': 1.0}
 
 
@@ -150,14 +151,47 @@ qpe(
 
 
 ####################################################################################################
+# Add noise
+
+
+def test_noise_qpe(error_rate, qpe_precision=3):
+    """Test the effect of noise on qpe.
+
+    Use `depolarizing_error` with the given error rate on all C* gates.
+    """
+    noise_model = NoiseModel()
+    noise_model.add_all_qubit_quantum_error(
+        errors.depolarizing_error(error_rate, 2), ["cx", "cy", "cz"]
+    )
+    return qpe(
+        qpe_precision, PhaseGate(2 * np.pi * (1 / 4 + 1 / 8)), XGate(), noise_model=noise_model
+    )
+
+
+# Obviously, the results degrade as the error rate or the number of ancilla qubits increases.
+# E.g., at (error_rate=0.1, qpe_precision=3), it's all just noise. Similarly, at
+# (error_rate=0.2, qpe_precision=5).
+
+test_noise_qpe(0.01)
+# {'011': 0.92138671875, '010': 0.015625, '111': 0.015625}
+
+test_noise_qpe(0.1)
+# {'011': 0.48046875, '010': 0.095703125, '100': 0.08544921875}
+
+test_noise_qpe(0.5)
+# {'011': 0.13623046875, '100': 0.130859375, '101': 0.130859375}
+
+test_noise_qpe(0.01, 5)
+# {'01100': 0.82568359375, '10000': 0.01904296875, '01000': 0.0185546875}
+
+test_noise_qpe(0.2, 5)
+# {'01100': 0.06396484375, '01000': 0.04931640625, '11100': 0.0478515625}
+
+
+####################################################################################################
 # Q's
 
-# - The above works well. But it requires knowledge of eigenvalues and eigenvectors of the
-# Hamiltonian beforehand.
-# - Assuming we don't know them beforehand, we should choose t small enough, meaning we'd need
-# large enough precision.
 # - If t is too small, would it be practically possible to measure?
-# - Initial state prepared by Projection Algo seems to be the issue. Still looking.
 
 # Truncation / Bad estimation
 

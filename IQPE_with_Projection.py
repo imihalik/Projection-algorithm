@@ -2,6 +2,7 @@ import numpy as np
 from qiskit.circuit.library import PauliEvolutionGate, PhaseGate, TGate, XGate
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.synthesis import SuzukiTrotter
+from qiskit_aer.noise import NoiseModel, errors
 from scipy.linalg import eigh
 
 from projection_algorithm import driver
@@ -94,3 +95,46 @@ iqpe(
     num_bits=9,
 )
 # 0.974609375 -> -3.8984375
+
+
+####################################################################################################
+# Add noise
+
+# Similarly to QPE, the IQPE results are expected to degrade as the error rate or the number of
+# iterations increases. But IQPE is more resilient to noise than QPE, as it only uses one ancilla
+# qubit at a time. So a simple unitary circuit like `PhaseGate` gives the correct result even at
+# high error rate = 1. (What??)
+# Try a harder example to break IQPE:
+
+# Simple Ising Hamiltonian from above.
+# H = SparsePauliOp(["ZI", "IZ", "ZZ"], coeffs=[1.42, 2.19, 2.65])
+# e, v = np.linalg.eig(H)
+
+
+def test_noise_iqpe(error_rate):
+    """Test the effect of noise on iqpe.
+
+    Use `depolarizing_error` with the given error rate on all C* gates.
+    """
+    noise_model = NoiseModel()
+    noise_model.add_all_qubit_quantum_error(
+        errors.depolarizing_error(error_rate, 2), ["cx", "cy", "cz"]
+    )
+    return iqpe(
+        U=PauliEvolutionGate(H, time=2 * np.pi / 2**4),
+        initial_state=v[:, 0],
+        num_bits=5,
+        noise_model=noise_model,
+    )
+
+test_noise_iqpe(0.01)
+# (0.59375, [1, 0, 0, 1, 1])
+
+test_noise_iqpe(0.1)
+# (0.59375, [1, 0, 0, 1, 1])
+
+test_noise_iqpe(0.5)
+# (0.78125, [1, 1, 0, 0, 1])
+
+test_noise_iqpe(0.6)
+# (0.375, [0, 1, 1, 0, 0])

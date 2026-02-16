@@ -2,9 +2,15 @@ import numpy as np
 from qiskit import QuantumCircuit, transpile
 from qiskit.quantum_info import Statevector
 from qiskit_aer import AerSimulator
+from qiskit_aer.noise import NoiseModel
 
 
-def iqpe(U, initial_state, num_bits: int) -> tuple[float, list[int]]:
+def iqpe(
+    U,
+    initial_state,
+    num_bits: int,
+    noise_model: NoiseModel | None = None,
+) -> tuple[float, list[int]]:
     if isinstance(initial_state, Statevector):
         psi = initial_state
     else:
@@ -12,7 +18,7 @@ def iqpe(U, initial_state, num_bits: int) -> tuple[float, list[int]]:
     n_sys = psi.num_qubits
     state_qubits = list(range(1, 1 + n_sys))
 
-    aer_sim = AerSimulator()
+    aer_sim = AerSimulator(noise_model=noise_model)
 
     bits = []
     omega_coef = 0.0
