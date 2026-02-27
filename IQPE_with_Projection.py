@@ -7,7 +7,11 @@ from scipy.linalg import eigh
 
 from projection_algorithm import driver
 from iqpe import iqpe
-from utils import bitstring_to_eigenvalue, get_isotropic_1d_heisenberg_hamiltonian
+from utils import (
+    bitstring_to_eigenvalue,
+    get_fermi_hubbard_hamiltonian_on_line_lattice,
+    get_isotropic_1d_heisenberg_hamiltonian,
+)
 
 
 # 1. Textbook examples
@@ -138,3 +142,53 @@ test_noise_iqpe(0.5)
 
 test_noise_iqpe(0.6)
 # (0.375, [0, 1, 1, 0, 0])
+
+
+####################################################################################################
+# Fermi-Hubbard Hamiltonian on Line Lattice
+
+def imeasure_H(fh, precision, init_state):
+    for n in range(10):
+        print(
+            iqpe(
+                U=PauliEvolutionGate(fh, time=2 * np.pi / 2**n),
+                initial_state=init_state,
+                num_bits=precision,
+            )
+        )
+
+
+fh = get_fermi_hubbard_hamiltonian_on_line_lattice(2, -2.3, .28, 4.6)
+e, v = eigh(fh)
+# array([-2.28295635e+00, -2.02000000e+00, ...])
+
+imeasure_H(fh, 7, list(v[:,0]))
+# (0.0390625, [0, 0, 0, 0, 1, 0, 1])
+# (0.015625, [0, 0, 0, 0, 0, 1, 0])
+# (0.0078125, [0, 0, 0, 0, 0, 0, 1])
+# (0.5078125, [1, 0, 0, 0, 0, 0, 1])
+# (0.25, [0, 1, 0, 0, 0, 0, 0])
+# (0.125, [0, 0, 1, 0, 0, 0, 0])
+# (0.0625, [0, 0, 0, 1, 0, 0, 0])
+# (0.03125, [0, 0, 0, 0, 1, 0, 0])
+# (0.015625, [0, 0, 0, 0, 0, 1, 0])
+# (0.0078125, [0, 0, 0, 0, 0, 0, 1])
+
+bitstring_to_eigenvalue("1000001", 2 * np.pi / 2**3, False)
+# -4.0625
+
+
+imeasure_H(fh, 9, list(v[:,0]))
+# (0.0390625, [0, 0, 0, 0, 1, 0, 1, 0, 0])
+# (0.01953125, [0, 0, 0, 0, 0, 1, 0, 1, 0])
+# (0.009765625, [0, 0, 0, 0, 0, 0, 1, 0, 1])
+# (0.50390625, [1, 0, 0, 0, 0, 0, 0, 1, 0])
+# (0.251953125, [0, 1, 0, 0, 0, 0, 0, 0, 1])
+# (0.126953125, [0, 0, 1, 0, 0, 0, 0, 0, 1])
+# (0.0625, [0, 0, 0, 1, 0, 0, 0, 0, 0])
+# (0.03125, [0, 0, 0, 0, 1, 0, 0, 0, 0])
+# (0.015625, [0, 0, 0, 0, 0, 1, 0, 0, 0])
+# (0.0078125, [0, 0, 0, 0, 0, 0, 1, 0, 0])
+
+bitstring_to_eigenvalue("100000010", 2 * np.pi / 2**3, False)
+# -4.03125
