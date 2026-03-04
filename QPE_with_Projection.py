@@ -157,16 +157,10 @@ qpe(
 ####################################################################################################
 # Add noise
 
-
-def test_noise_qpe(error_rate, qpe_precision=3):
-    """Test the effect of noise on qpe.
-
-    Use `depolarizing_error` with the given error rate on all C* gates.
-    """
+def test_noise_qpe(error, instruction, qpe_precision=3):
+    """Test the effect of noise on qpe."""
     noise_model = NoiseModel()
-    noise_model.add_all_qubit_quantum_error(
-        errors.depolarizing_error(error_rate, 2), ["cx", "cy", "cz"]
-    )
+    noise_model.add_all_qubit_quantum_error(error, instruction)
     return qpe(
         qpe_precision, PhaseGate(2 * np.pi * (1 / 4 + 1 / 8)), XGate(), noise_model=noise_model
     )
@@ -176,20 +170,45 @@ def test_noise_qpe(error_rate, qpe_precision=3):
 # E.g., at (error_rate=0.1, qpe_precision=3), it's all just noise. Similarly, at
 # (error_rate=0.2, qpe_precision=5).
 
-test_noise_qpe(0.01)
+# Depolarizing Error
+
+test_noise_qpe(errors.depolarizing_error(0.01, 2), ["cx", "cy", "cz"])
 # {'011': 0.92138671875, '010': 0.015625, '111': 0.015625}
 
-test_noise_qpe(0.1)
+test_noise_qpe(errors.depolarizing_error(0.1, 2), ["cx", "cy", "cz"])
 # {'011': 0.48046875, '010': 0.095703125, '100': 0.08544921875}
 
-test_noise_qpe(0.5)
+test_noise_qpe(errors.depolarizing_error(0.5, 2), ["cx", "cy", "cz"])
 # {'011': 0.13623046875, '100': 0.130859375, '101': 0.130859375}
 
-test_noise_qpe(0.01, 5)
+test_noise_qpe(errors.depolarizing_error(0.01, 2), ["cx", "cy", "cz"], 5)
 # {'01100': 0.82568359375, '10000': 0.01904296875, '01000': 0.0185546875}
 
-test_noise_qpe(0.2, 5)
+test_noise_qpe(errors.depolarizing_error(0.2, 2), ["cx", "cy", "cz"], 5)
 # {'01100': 0.06396484375, '01000': 0.04931640625, '11100': 0.0478515625}
+
+
+# Thermal Relaxation Error
+
+test_noise_qpe(
+    errors.thermal_relaxation_error(50000, 70000, 300), ["h", "x", "y", "z", "rx", "ry", "rz"]
+)
+# {'011': 0.91748046875, '010': 0.017578125, '000': 0.01611328125}
+
+test_noise_qpe(
+    errors.thermal_relaxation_error(5000, 7000, 300), ["h", "x", "y", "z", "rx", "ry", "rz"]
+)
+# {'011': 0.43798828125, '010': 0.13818359375, '100': 0.109375}
+
+test_noise_qpe(
+    errors.thermal_relaxation_error(50000, 70000, 300), ["h", "x", "y", "z", "rx", "ry", "rz"], 5
+)
+# {'01100': 0.88818359375, '01000': 0.0224609375, '10000': 0.0146484375}
+
+test_noise_qpe(
+    errors.thermal_relaxation_error(5000, 7000, 300), ["h", "x", "y", "z", "rx", "ry", "rz"], 5
+)
+# {'01100': 0.33837890625, '01000': 0.12451171875, '10000': 0.1103515625}
 
 
 ####################################################################################################

@@ -114,34 +114,35 @@ iqpe(
 # H = SparsePauliOp(["ZI", "IZ", "ZZ"], coeffs=[1.42, 2.19, 2.65])
 # e, v = np.linalg.eig(H)
 
-
-def test_noise_iqpe(error_rate):
-    """Test the effect of noise on iqpe.
-
-    Use `depolarizing_error` with the given error rate on all C* gates.
-    """
+def test_noise_iqpe(error, instruction, precision=3):
+    """Test the effect of noise on qpe."""
     noise_model = NoiseModel()
-    noise_model.add_all_qubit_quantum_error(
-        errors.depolarizing_error(error_rate, 2), ["cx", "cy", "cz"]
-    )
+    noise_model.add_all_qubit_quantum_error(error, instruction)
     return iqpe(
         U=PauliEvolutionGate(H, time=2 * np.pi / 2**4),
         initial_state=v[:, 0],
-        num_bits=5,
+        num_bits=precision,
         noise_model=noise_model,
     )
 
-test_noise_iqpe(0.01)
+test_noise_iqpe(errors.depolarizing_error(0.01, 2), ["cx", "cy", "cz"], 5)
 # (0.59375, [1, 0, 0, 1, 1])
 
-test_noise_iqpe(0.1)
+test_noise_iqpe(errors.depolarizing_error(0.3, 2), ["cx", "cy", "cz"], 5)
 # (0.59375, [1, 0, 0, 1, 1])
 
-test_noise_iqpe(0.5)
-# (0.78125, [1, 1, 0, 0, 1])
+test_noise_iqpe(errors.depolarizing_error(0.5, 2), ["cx", "cy", "cz"], 5)
+# (0.875, [1, 1, 1, 0, 0])
 
-test_noise_iqpe(0.6)
-# (0.375, [0, 1, 1, 0, 0])
+test_noise_iqpe(
+    errors.thermal_relaxation_error(50000, 70000, 300), ["h", "x", "y", "z", "rx", "ry", "rz"], 5
+)
+# (0.59375, [1, 0, 0, 1, 1])
+
+test_noise_iqpe(
+    errors.thermal_relaxation_error(5000, 7000, 300), ["h", "x", "y", "z", "rx", "ry", "rz"], 5
+)
+# (0.625, [1, 0, 1, 0, 0])
 
 
 ####################################################################################################
