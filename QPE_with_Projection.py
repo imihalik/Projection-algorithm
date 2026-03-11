@@ -157,59 +157,61 @@ qpe(
 ####################################################################################################
 # Add noise
 
-def test_noise_qpe(error, instruction, qpe_precision=3):
+# Simple Ising Hamiltonian from above.
+# H = SparsePauliOp(["ZI", "IZ", "ZZ"], coeffs=[1.42, 2.19, 2.65])
+# e, v = np.linalg.eig(H)
+
+qpe(
+    7,
+    PauliEvolutionGate(H, time=2 * np.pi / 2**5),
+    initial_state=list(v[:, 0]),
+)
+# ({'1100111': 0.99560546875, '1100110': 0.001953125, '1101000': 0.0009765625},
+#  OrderedDict([('crz', 21),
+#               ('cp', 21),
+#               ('cx', 14),
+#               ('u', 7),
+#               ('h', 7),
+#               ('swap', 3),
+#               ('reset', 2),
+#               ('barrier', 2),
+#               ('state_preparation', 1)]))
+
+
+def test_noise_qpe(error, instruction, qpe_precision=7):
     """Test the effect of noise on qpe."""
     noise_model = NoiseModel()
     noise_model.add_all_qubit_quantum_error(error, instruction)
     return qpe(
-        qpe_precision, PhaseGate(2 * np.pi * (1 / 4 + 1 / 8)), XGate(), noise_model=noise_model
+        qpe_precision,
+        PauliEvolutionGate(H, time=2 * np.pi / 2**5),
+        initial_state=list(v[:, 0]),
+        noise_model=noise_model,
     )
 
 
-# Obviously, the results degrade as the error rate or the number of ancilla qubits increases.
-# E.g., at (error_rate=0.1, qpe_precision=3), it's all just noise. Similarly, at
-# (error_rate=0.2, qpe_precision=5).
-
 # Depolarizing Error
 
-test_noise_qpe(errors.depolarizing_error(0.01, 2), ["cx", "cy", "cz"])
-# {'011': 0.92138671875, '010': 0.015625, '111': 0.015625}
+test_noise_qpe(errors.depolarizing_error(0.01, 2), ["crz", "cp", "cx", "swap", "reset"])
+# {'1100111': 0.6806640625, '1100110': 0.02978515625, '1101000': 0.02392578125}
 
-test_noise_qpe(errors.depolarizing_error(0.1, 2), ["cx", "cy", "cz"])
-# {'011': 0.48046875, '010': 0.095703125, '100': 0.08544921875}
+test_noise_qpe(errors.depolarizing_error(0.01, 2), ["crz", "cp", "cx", "swap", "reset"])
+# {'1100111': 0.154296875, '1100110': 0.04345703125, '1101000': 0.03369140625}
 
-test_noise_qpe(errors.depolarizing_error(0.5, 2), ["cx", "cy", "cz"])
-# {'011': 0.13623046875, '100': 0.130859375, '101': 0.130859375}
-
-test_noise_qpe(errors.depolarizing_error(0.01, 2), ["cx", "cy", "cz"], 5)
-# {'01100': 0.82568359375, '10000': 0.01904296875, '01000': 0.0185546875}
-
-test_noise_qpe(errors.depolarizing_error(0.2, 2), ["cx", "cy", "cz"], 5)
-# {'01100': 0.06396484375, '01000': 0.04931640625, '11100': 0.0478515625}
+test_noise_qpe(errors.depolarizing_error(0.1, 2), ["crz", "cp", "cx", "swap", "reset"])
+# {'1100111': 0.04052734375, '1100110': 0.02734375, '1101000': 0.02197265625}
 
 
 # Thermal Relaxation Error
 
-test_noise_qpe(
-    errors.thermal_relaxation_error(50000, 70000, 300), ["h", "x", "y", "z", "rx", "ry", "rz"]
-)
-# {'011': 0.91748046875, '010': 0.017578125, '000': 0.01611328125}
+test_noise_qpe(errors.thermal_relaxation_error(50000, 70000, 300), ["h", "u", "crz", "reset"])
+# {'1100111': 0.72802734375, '1100110': 0.04345703125, '1100011': 0.0302734375}
 
-test_noise_qpe(
-    errors.thermal_relaxation_error(5000, 7000, 300), ["h", "x", "y", "z", "rx", "ry", "rz"]
-)
-# {'011': 0.43798828125, '010': 0.13818359375, '100': 0.109375}
+test_noise_qpe(errors.thermal_relaxation_error(25000, 35000, 300), ["h", "u", "crz", "reset"])
+# {'1100111': 0.552734375, '1100101': 0.0556640625, '1100110': 0.0537109375}
 
-test_noise_qpe(
-    errors.thermal_relaxation_error(50000, 70000, 300), ["h", "x", "y", "z", "rx", "ry", "rz"], 5
-)
-# {'01100': 0.88818359375, '01000': 0.0224609375, '10000': 0.0146484375}
-
-test_noise_qpe(
-    errors.thermal_relaxation_error(5000, 7000, 300), ["h", "x", "y", "z", "rx", "ry", "rz"], 5
-)
-# {'01100': 0.33837890625, '01000': 0.12451171875, '10000': 0.1103515625}
-
+test_noise_qpe(errors.thermal_relaxation_error(5000, 7000, 300), ["h", "u", "crz", "reset"])
+# {'1100111': 0.0537109375, '1100110': 0.0380859375, '1100101': 0.03515625}
 
 ####################################################################################################
 # Fermi-Hubbard Hamiltonian on Line Lattice

@@ -1,3 +1,5 @@
+from collections import Counter
+
 import numpy as np
 from qiskit import QuantumCircuit, transpile
 from qiskit.quantum_info import Statevector
@@ -10,7 +12,7 @@ def iqpe(
     initial_state,
     num_bits: int,
     noise_model: NoiseModel | None = None,
-) -> tuple[float, list[int]]:
+) -> tuple[list[int], Counter]:
     if isinstance(initial_state, Statevector):
         psi = initial_state
     else:
@@ -22,6 +24,7 @@ def iqpe(
 
     bits = []
     omega_coef = 0.0
+    gate_counts = Counter()
 
     # Iterate from the least significant bit up to the most
     for k in range(num_bits, 0, -1):
@@ -45,6 +48,8 @@ def iqpe(
         qc.h(0)
         qc.barrier()
 
+        gate_counts.update(qc.decompose().count_ops())
+
         # 5. Measure
         qc.measure(0, 0)
 
@@ -64,4 +69,4 @@ def iqpe(
         omega_coef += bit / 2.0
 
     bits.reverse()
-    return omega_coef, bits
+    return bits, gate_counts

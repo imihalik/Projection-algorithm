@@ -14,7 +14,7 @@ def qpe(
     top_n: int | None = 3,
     sim_shots: int = 2048,
     noise_model: NoiseModel | None = None,
-) -> dict:
+) -> tuple[dict, dict]:
     num_state_qubits = unitary.num_qubits
     state_qubits = list(range(precision, precision + num_state_qubits))
     ancilla_qubits = list(range(precision))
@@ -40,6 +40,8 @@ def qpe(
 
     qpe_circuit.barrier()
 
+    gate_counts = qpe_circuit.decompose().count_ops()
+
     for digit in ancilla_qubits:
         qpe_circuit.measure(digit, digit)
 
@@ -50,8 +52,11 @@ def qpe(
         reverse=True,
     )
 
-    return {
-        k: v / sim_shots
-        for i, (k, v) in enumerate(distribution)
-        if i < (top_n or 2**precision)
-    }
+    return (
+        {
+            k: v / sim_shots
+            for i, (k, v) in enumerate(distribution)
+            if i < (top_n or 2**precision)
+        },
+        gate_counts,
+    )
